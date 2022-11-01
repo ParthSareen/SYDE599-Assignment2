@@ -14,7 +14,7 @@ class CnnLoader:
 
     def download_dataset(self):
         self.train = datasets.MNIST(root='datasets', train=True, transform=ToTensor(), download=True)
-        self.test = datasets.MNIST(root='datasets', train=False)
+        self.test = datasets.MNIST(root='datasets', train=False, transform=ToTensor(), download=True)
 
     def loaders(self):
         loaders = {

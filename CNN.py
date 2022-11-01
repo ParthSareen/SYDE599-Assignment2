@@ -49,12 +49,13 @@ class CNN(nn.Module):
         with torch.no_grad():
             correct = 0
             total = 0
-            for images, labels in self.loaders['test']:
-                test_output, last_layer = self.forward(images)
+            for i, (images, labels) in enumerate(self.loaders['test']):
+                test_output, last_layer = self(images)
                 pred_y = torch.max(test_output, 1)[1].data.squeeze()
                 accuracy = (pred_y==labels).sum().item()/float(labels.size(0))
                 pass
-        print('acc: %.2f' % accuracy)
+        pass
+        print('acc: %.4f' % accuracy)
 
 
 
@@ -79,7 +80,7 @@ def test():
     print(cnn)
     print(optimizer)
 
-    cnn.train_model(epochs=10)
+    cnn.train_model(epochs=4)
     cnn.test()
 
 
