@@ -10,14 +10,22 @@ import CnnLoader as loader
 
 
 class Network(nn.Module):
-    def __init__(self):
+    def __init__(self, num_conv_layers, num_conv_nodes, conv_drops, fc1_neurons):
         super(Network, self).__init__()
         # TODO: Why
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=10, kernel_size=5)
-        self.conv2 = nn.Conv2d(in_channels=10, out_channels=20, kernel_size=5)
-        self.dropout = nn.Dropout2d()
-        self.fc1 = nn.Linear(320, 50)
-        self.fc2 = nn.Linear(50, 10)
+        # generate list of convolutional layers
+        input_size = 28 # images are 28x28 pixels 
+        kernel_size = 5
+        self.conv_layers = nn.ModuleList([nn.Conv2d(in_channels=1, out_channels=num_conv_nodes[0], kernel_size=kernel_size)])
+        output_size = (input_size - kernel_size + 1) / 2
+        for i in range(1, num_conv_layers):
+            self.conv_layers.append(nn.Conv2d(in_channels=num_conv_nodes[i], out_channels=output_size, kernel_size=kernel_size))
+        
+        self.dropout = nn.Dropout2d(p=conv_drops)
+
+        self.conv_last_feature_size = num_conv_nodes[num_conv_layers-1] * output_size
+        self.fc1 = nn.Linear(self.conv_last_feature_size, fc1_neurons)
+        self.fc2 = nn.Linear(fc1_neurons, 10)
 
     # TODO Look through
     def forward(self, x):
@@ -85,14 +93,24 @@ def obj_func(trial):
     train_loader = loaders['train']
     test_loader = loaders['test']
 
+    trial = optuna.trial.Trial
+
+    num_conv_layers = trial.suggest_int("num_conv_layers", 1, 3)
+    num_conv_nodes = []
+    for i in range(num_conv_layers):
+        num_conv_nodes.append(int(trial.suggest_discrete_uniform(f'num_conv_nodes_layer_{i}', 8, 256, 16)))
+    conv_drops = trial.suggest_float("conv2_drop", 0.1, 0.5)
+    num_fc1_neurons = trial.suggest_int("fc1_neurons", 10, 200, 10)
+
     # create the model
-    model = Network()
+    model = Network(num_conv_layers, num_conv_nodes, conv_drops, num_fc1_neurons)
     
     # get the optimizers
     select_optimizer = trial.suggest_categorical("optimizer", ["Adam", "SGD"])
     learning_rate = trial.suggest_float("learning_rate", 0.00001, 0.1)
     optimizer = getattr(optim, select_optimizer)(model.parameters(), lr=learning_rate)
 
+    # train the model
     for epoch in range(1, 5):
         train(model, train_loader, optimizer, epoch)
         test(model, test_loader)
@@ -101,7 +119,7 @@ def obj_func(trial):
 def optimize_with_optuna():
 
     # params
-    optuna_trials = 20
+    optuna_trials = 2
 
     # create an optuna study to do optimization
     study = optuna.create_study(direction="minimize")
@@ -114,6 +132,13 @@ def optimize_with_optuna():
     print('params')
     for key, val in best_trial.params.items():
         print(f'{key}, {val}')
+
+    df = study.trials_dataframe().sort_values('value')
+    df.to_csv('optuna_results_1.csv', index=False)
+
+    print('most important hyperparams')
+    for key, val in optuna.importance.get_param_importances(study, target=None):
+        print(f'{key}, {15-len(key)}, {val * 100}')
 
     
 
@@ -138,4 +163,4 @@ def main():
 
 if __name__ == '__main__':
     # main()
-    optimize_with_optuna()
+    optimize_with_optuna()  
