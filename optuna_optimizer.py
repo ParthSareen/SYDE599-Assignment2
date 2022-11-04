@@ -24,8 +24,8 @@ class Network(nn.Module):
         self.dropout = nn.Dropout2d(p=conv2_drops)
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=num_conv1_nodes, kernel_size=5)
         self.conv2 = nn.Conv2d(in_channels=num_conv1_nodes, out_channels=num_conv2_nodes, kernel_size=5)
-        self.fc1_in_size = int(((((28 - 5 + 1) / 2) - 5 + 1) / 2) * num_conv2_nodes * num_conv2_nodes)
-        self.fc1 = nn.Linear(self.fc1_in_size, fc1_neurons)
+        self.fc1_in_size = ((((28 - 5 + 1) / 2) - 5 + 1) / 2) ** 2 * num_conv2_nodes
+        self.fc1 = nn.Linear(int(self.fc1_in_size), fc1_neurons)
         self.fc2 = nn.Linear(fc1_neurons, 10)
 
     # TODO Look through
@@ -105,7 +105,7 @@ def obj_func(trial):
     
     # get the optimizers
     select_optimizer = trial.suggest_categorical("optimizer", ["Adam", "SGD"])
-    learning_rate = trial.suggest_float("learning_rate", 0.00001, 0.1)
+    learning_rate = trial.suggest_loguniform("learning_rate", 0.00001, 0.1)
     optimizer = getattr(optim, select_optimizer)(model.parameters(), lr=learning_rate)
 
     # train the model
@@ -148,7 +148,7 @@ def main():
     train_loader = loaders['train']
     test_loader = loaders['test']
 
-    model = Network(10, 100, 0.1, 50)
+    model = Network(10, 20, 0.1, 50)
     # optimizer = optim.SGD(network.parameters(), lr=learning_rate,
     #                       momentum=momentum)
     optimizer = optim.Adam(model.parameters())
@@ -160,5 +160,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
-    # optimize_with_optuna()  
+    # main()
+    optimize_with_optuna()  
