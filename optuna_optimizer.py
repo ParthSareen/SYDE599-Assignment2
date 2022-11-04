@@ -10,28 +10,29 @@ import CnnLoader as loader
 
 
 class Network(nn.Module):
-    def __init__(self, num_conv_layers, num_conv_nodes, conv_drops, fc1_neurons):
+    def __init__(self, num_conv1_nodes, num_conv2_nodes, conv2_drops, fc1_neurons):
         super(Network, self).__init__()
         # TODO: Why
         # generate list of convolutional layers
-        input_size = 28 # images are 28x28 pixels 
-        kernel_size = 5
-        self.conv_layers = nn.ModuleList([nn.Conv2d(in_channels=1, out_channels=num_conv_nodes[0], kernel_size=kernel_size)])
-        output_size = (input_size - kernel_size + 1) / 2
-        for i in range(1, num_conv_layers):
-            self.conv_layers.append(nn.Conv2d(in_channels=num_conv_nodes[i], out_channels=output_size, kernel_size=kernel_size))
+        # input_size = 28 # images are 28x28 pixels 
+        # kernel_size = 5
+        # self.conv_layers = nn.ModuleList([nn.Conv2d(in_channels=1, out_channels=num_conv_nodes[0], kernel_size=kernel_size)])
+        # output_size = (input_size - kernel_size + 1) / 2
+        # for i in range(1, num_conv_layers):
+        #     self.conv_layers.append(nn.Conv2d(in_channels=num_conv_nodes[i], out_channels=output_size, kernel_size=kernel_size))
         
-        self.dropout = nn.Dropout2d(p=conv_drops)
-
-        self.conv_last_feature_size = num_conv_nodes[num_conv_layers-1] * output_size
-        self.fc1 = nn.Linear(self.conv_last_feature_size, fc1_neurons)
+        self.dropout = nn.Dropout2d(p=conv2_drops)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=num_conv1_nodes, kernel_size=5)
+        self.conv2 = nn.Conv2d(in_channels=num_conv1_nodes, out_channels=num_conv2_nodes, kernel_size=5)
+        self.fc1_in_size = int(((((28 - 5 + 1) / 2) - 5 + 1) / 2) * num_conv2_nodes * num_conv2_nodes)
+        self.fc1 = nn.Linear(self.fc1_in_size, fc1_neurons)
         self.fc2 = nn.Linear(fc1_neurons, 10)
 
     # TODO Look through
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
         x = F.relu(F.max_pool2d(self.dropout(self.conv2(x)), 2))
-        x = x.view(-1, 320)
+        x = x.view(-1, int(self.fc1_in_size))
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
@@ -93,17 +94,14 @@ def obj_func(trial):
     train_loader = loaders['train']
     test_loader = loaders['test']
 
-    trial = optuna.trial.Trial
 
-    num_conv_layers = trial.suggest_int("num_conv_layers", 1, 3)
-    num_conv_nodes = []
-    for i in range(num_conv_layers):
-        num_conv_nodes.append(int(trial.suggest_discrete_uniform(f'num_conv_nodes_layer_{i}', 8, 256, 16)))
+    num_conv1_nodes = trial.suggest_int("num_conv1_nodes", 16, 128, 16)
+    num_conv2_nodes = trial.suggest_int("num_conv2_nodes", 16, 128, 16)
     conv_drops = trial.suggest_float("conv2_drop", 0.1, 0.5)
     num_fc1_neurons = trial.suggest_int("fc1_neurons", 10, 200, 10)
 
     # create the model
-    model = Network(num_conv_layers, num_conv_nodes, conv_drops, num_fc1_neurons)
+    model = Network(num_conv1_nodes, num_conv2_nodes, conv_drops, num_fc1_neurons)
     
     # get the optimizers
     select_optimizer = trial.suggest_categorical("optimizer", ["Adam", "SGD"])
@@ -150,7 +148,7 @@ def main():
     train_loader = loaders['train']
     test_loader = loaders['test']
 
-    model = Network()
+    model = Network(10, 100, 0.1, 50)
     # optimizer = optim.SGD(network.parameters(), lr=learning_rate,
     #                       momentum=momentum)
     optimizer = optim.Adam(model.parameters())
@@ -162,5 +160,5 @@ def main():
 
 
 if __name__ == '__main__':
-    # main()
-    optimize_with_optuna()  
+    main()
+    # optimize_with_optuna()  
