@@ -15,6 +15,9 @@ class Network(nn.Module):
         self.dropout = nn.Dropout2d(p=conv2_drops)
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=num_conv1_channels, kernel_size=5)
         self.conv2 = nn.Conv2d(in_channels=num_conv1_channels, out_channels=num_conv2_channels, kernel_size=5)
+        # Number of input neurons to the fully connected layer = output neurons of conv2
+        # output neurons of conv 1 = ((input size (28) - kernel size (5) + 1) / max pool size (2) )^2 * num channels
+        # output neurons of conv 2 = ((input size (12) - kernel size (5) + 1) / max pool size (2) )^2 * num channels
         self.fc1_in_size = ((((28 - 5 + 1) / 2) - 5 + 1) / 2) ** 2 * num_conv2_channels
         self.fc1 = nn.Linear(int(self.fc1_in_size), fc1_neurons)
         self.fc2 = nn.Linear(fc1_neurons, 10)
