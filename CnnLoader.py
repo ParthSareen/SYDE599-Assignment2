@@ -19,11 +19,13 @@ class CnnLoader:
 
     def loaders(self):
         loaders = {
-            'train': torch.utils.data.DataLoader(self.train, batch_size=100, shuffle=self.shuffle, num_workers=self.num_workers),
-            'test': torch.utils.data.DataLoader(self.test, batch_size=1000, shuffle=self.shuffle,
+            'train': torch.utils.data.DataLoader(self.train, batch_size=100, shuffle=self.shuffle,
                                                  num_workers=self.num_workers),
+            'test': torch.utils.data.DataLoader(self.test, batch_size=1000, shuffle=self.shuffle,
+                                                num_workers=self.num_workers),
         }
         return loaders
+
 
 def main():
     cnn = CnnLoader()
